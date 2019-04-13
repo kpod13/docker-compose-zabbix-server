@@ -1,0 +1,62 @@
+---
+version: '3.6'
+
+services:
+  zabbix-db:
+    image: mariadb:10.3
+    ports:
+      - 127.0.0.1:${ZABBIX_DB_PORT:-33306}:3306
+    volumes:
+      - zabbix-db_data:/var/lib/mysql
+    env_file:
+      - .env_db_mysql
+    networks:
+      - zabbix
+    stop_grace_period: 1m
+    restart: always
+
+  zabbix-server:
+    image: zabbix/zabbix-server-mysql:alpine-4.2-latest
+    ports:
+      - "10051:10051"
+    volumes:
+      - ./zabbix-server/AlertScripts:/usr/lib/zabbix/alertscripts
+      - ./zabbix-server/SSHKeys:/var/lib/zabbix/ssh_keys
+    depends_on:
+      - zabbix-db
+    env_file:
+      - .env_db_mysql
+      - .env_srv
+    networks:
+      - zabbix
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 20000
+        hard: 40000
+    stop_grace_period: 30s
+    restart: always
+
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-mysql:alpine-4.2-latest
+    ports:
+      - "127.0.0.1:${ZABBIX_WEB_PORT:-8080}:80"
+    env_file:
+      - .env_db_mysql
+      - .env_web
+    networks:
+      - zabbix
+    user: root
+    depends_on:
+      - zabbix-db
+      - zabbix-server
+    stop_grace_period: 10s
+    restart: always
+
+volumes:
+  zabbix-db_data:
+
+networks:
+  zabbix:
+    driver_opts:
+      com.docker.network.enable_ipv6: "false"
