@@ -1,4 +1,4 @@
-# docker-compose-zabbix
+# docker-compose-zabbix-server
 
 This is a docker-compose app with zabbix-server, zabbix-ui and database.
 
